@@ -7,10 +7,9 @@ import cats.instances.try_._
 
 object Monads {
 
-
   // lists
   val numbers = 1 :: 2 :: 3 :: Nil
-  val chars   = 'a' :: 'b' :: 'c' :: Nil
+  val chars = 'a' :: 'b' :: 'c' :: Nil
 
   val combination = for {
     n <- numbers
@@ -38,18 +37,22 @@ object Monads {
 
   /**
    * Pattern
-   - wrapping a value into a M value
-   - the flatMap mechanism
-
-   MONADS
+   * - wrapping a value into a M value
+   * - the flatMap mechanism
+   *
+   * MONADS
    */
 
   trait MyMonad[M[_]] {
     def pure[A](value: A): M[A] // lift
+
     def flatMap[A, B](ma: M[A])(f: A => M[B]): M[B]
+
+    def map[A, B](ma: M[A])(f: A => B): M[B] = flatMap(ma)(x => pure(f(x)))
   }
 
   // Cats monad
+
   import cats.Monad
   import cats.instances.option._
 
@@ -58,23 +61,18 @@ object Monads {
   val aTransformedOption: Option[Int] = optionMonad.flatMap(lifted)(x => if (x % 3 == 0) Some(x + 1) else None)
 
   import cats.instances.list._
+
   val listMonad = Monad[List]
   val aList = listMonad.pure(3) // List(3)
-  val aTransformedList = listMonad.flatMap(aList)(l => List(l, l+1, l+2))
+  val aTransformedList = listMonad.flatMap(aList)(l => List(l, l + 1, l + 2))
 
   // future
+
   import cats.instances.future._
+
   val futureMonad = Monad[Future]
   val aFuture = futureMonad.pure(5) // lift into future
   val aTransformedFuture = futureMonad.flatMap(aFuture)(fut => Future(fut + 5))
-
-  def main(args: Array[String]): Unit = {
-    println(aTransformedList)
-    println(aTransformedFuture)
-    println {
-      pairs(1 :: 2 :: Nil, 'a' :: 'b' :: Nil)
-    }
-  }
 
   // specialized API
   def getPairs(ints: List[Int], chars: List[Char]): List[(Int, Char)] = for {
@@ -84,7 +82,7 @@ object Monads {
 
 
   // you can't generalize more than that
-  def pairs[F[_]: Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+  def pairs[F[_] : Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
     Monad[F].flatMap(fa)(a => Monad[F].map(fb)(b => (a, b)))
 
   val listTuples: List[(Int, Char)] =
@@ -95,5 +93,40 @@ object Monads {
     pairs(Try(42 / 0), Try(10 % 2 == 0))
   val optionTuple: Option[(BigDecimal, BigInt)] =
     pairs(Option(BigDecimal(1L)), Option(BigInt(2)))
+
+  // extension methods of monads - pure and flatMap
+  // weirder imports
+
+  import cats.syntax.applicative._ // weaker monad which only has pure method
+
+  val oneOption: Option[Int] = 1.pure[Option] // Monad[Option] will be used here
+  val oneList: List[Int] = 1.pure[List] // List(1)
+
+  import cats.syntax.flatMap._ // flatMap is here
+
+  val oneOptionMapped = oneOption.flatMap(x => (x + 1).pure[Option])
+
+  def main(args: Array[String]): Unit = {
+    println(aTransformedList)
+    println(aTransformedFuture)
+    println {
+      pairs(1 :: 2 :: Nil, 'a' :: 'b' :: Nil)
+    }
+  }
+
+  import cats.syntax.monad._
+
+  val composedOptionFor: Option[Int] = for {
+    one <- 1.pure[Option]
+    two <- 2.pure[Option]
+  } yield one + two
+
+  import cats.syntax.functor._
+
+  def pairsFor[F[_] : Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] = for {
+    a <- fa // cats.syntax.flaMap._
+    b <- fb // cats.syntax.functor._
+  } yield (a, b)
+
 
 }
