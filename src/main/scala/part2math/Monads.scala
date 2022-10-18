@@ -2,6 +2,8 @@ package part2math
 
 import java.util.concurrent.Executors
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
+import cats.instances.try_._
 
 object Monads {
 
@@ -69,6 +71,29 @@ object Monads {
   def main(args: Array[String]): Unit = {
     println(aTransformedList)
     println(aTransformedFuture)
+    println {
+      pairs(1 :: 2 :: Nil, 'a' :: 'b' :: Nil)
+    }
   }
+
+  // specialized API
+  def getPairs(ints: List[Int], chars: List[Char]): List[(Int, Char)] = for {
+    n <- ints
+    c <- chars
+  } yield (n, c)
+
+
+  // you can't generalize more than that
+  def pairs[F[_]: Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+    Monad[F].flatMap(fa)(a => Monad[F].map(fb)(b => (a, b)))
+
+  val listTuples: List[(Int, Char)] =
+    pairs(1 :: 2 :: Nil, 'a' :: 'b' :: Nil)
+  val futureTuple: Future[(Int, String)] =
+    pairs(Future(42), Future("past"))
+  val tryTuple: Try[(Int, Boolean)] =
+    pairs(Try(42 / 0), Try(10 % 2 == 0))
+  val optionTuple: Option[(BigDecimal, BigInt)] =
+    pairs(Option(BigDecimal(1L)), Option(BigInt(2)))
 
 }
