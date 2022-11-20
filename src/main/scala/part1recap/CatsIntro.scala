@@ -2,7 +2,6 @@ package part1recap
 
 object CatsIntro {
 
-
   // part 1 - import type class itself
   import cats.Eq
 
@@ -32,14 +31,21 @@ object CatsIntro {
   // create type class instance for a custom type
   final case class ToyCar(model: String, price: BigDecimal)
 
-  implicit val toyCarEq: Eq[ToyCar] = Eq.instance[ToyCar] { (c1, c2) =>
-    c1.price == c2.price
+  object ToyCar {
+    implicit val toyCarEq: Eq[ToyCar] = Eq.instance[ToyCar] { (c1, c2) =>
+      c1.price == c2.price
+    }
   }
 
-  println((ToyCar("m1", BigDecimal(30.5)) == ToyCar("Lambo", BigDecimal(32.4))))
-
+  import cats.instances.option._
 
   def main(args: Array[String]): Unit = {
+
+    println(ToyCar("m1", BigDecimal(30.5)) == ToyCar("Lambo", BigDecimal(32.4))) // false, prices are different
+
+    println(List(ToyCar("m1", BigDecimal(30.5))) === List(ToyCar("Lambo", BigDecimal(100.5)))) // false, prices are different
+
+    println(Option(ToyCar("m1", BigDecimal(1))) === Option(ToyCar("m2", BigDecimal(1)))) // true, prices are the same
 
   }
 

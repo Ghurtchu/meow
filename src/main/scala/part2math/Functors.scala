@@ -41,6 +41,8 @@ object Functors {
   // general solution
   def do10x[F[_]](container: F[Int])(implicit functor: Functor[F]): F[Int] = functor.map(container)(_ * 10)
 
+  def map[F[_], A, B](fa: F[A], f: A => B)(implicit functor: Functor[F]): F[B] = functor.map(fa)(f)
+
   trait Tree[+A]
 
   object Tree {
@@ -97,6 +99,8 @@ object Functors {
     println {
       do10xShorter(Tree.branch(1, Tree.leaf(2), Tree.leaf(3)))
     }
+
+    println(map[Option, Int, String](Option(5), _.toString))
 
   }
 

@@ -1,131 +1,122 @@
 package part2math
 
+import scala.util.Try
+
 object UsingMonads {
 
   import cats.Monad
-  import cats.instances.list._
+  import cats.instances.list._ // import list instances for Monad, Functor, and many others
 
-  val monadList = Monad[List] // list monad type class instance
-  val aSimpleList = monadList.pure(2) // List(2)
-  val mapped = monadList.flatMap(aSimpleList)(elem => List(elem - 1, elem, elem + 1)) // applicable to Option, Try, Future etc..
+  val listMonad: Monad[List] = Monad[List] // fetch the implicit Monad[List]
+  val aList: List[Int] = listMonad.pure(2)
+  val extendedList: List[Int] = listMonad.flatMap(aList)(n => List(n - 1, n, n + 2))
+  // fundamental methods are: pure, flatMap
 
-  val aManualEither: Either[String, Int] = Right(42)
+  // applicable to Option, Try, Future, Either, List, Vector, etc..
 
-  type LoadingOr[A] = Either[String, A]
+  val aManualEither: Either[String, Int] = Right(77)
+
+  type LoadingOr[A] = Either[String, A] // String -> some sort of loading error message
   type ErrorOr[A]   = Either[Throwable, A]
 
   import cats.instances.either._
-
-  val loadingMonad = Monad[LoadingOr]
-  val errorOrMonad = Monad[ErrorOr]
-
+  val loadingMonad = Monad[LoadingOr] // fetch instance
   val anEither = loadingMonad.pure(45) // LoadingOr[Int] == Right(45)
-  val aChangedLoading = loadingMonad.flatMap(anEither) { int =>
-    if (int >= 5) Left("Too much")
-    else Right(int - 1)
+  val aChangedLoading = loadingMonad.flatMap(anEither) { a =>
+    if (scala.util.Random.nextBoolean) Right(a.toString)
+    else Left("Boom")
   }
 
   // imaginary online store
-
   final case class OrderStatus(orderId: Long, status: String)
 
-  // Right(orderStatus) or Left(String error message)
   def getOrderStatus(orderId: Long): LoadingOr[OrderStatus] =
-    Right(OrderStatus(orderId = orderId, status = "ready to ship"))
+    Right(OrderStatus(orderId, "Ready to ship"))
 
   def trackLocation(orderStatus: OrderStatus): LoadingOr[String] =
-    if (orderStatus.orderId > 1000) Left("Not available yet, refreshing data...")
+    if (orderStatus.orderId > 1000) Left("Not available, refreshing data...")
     else Right("Amsterdam, Netherlands")
 
   val orderId = 457L
-
-  val orderLocation: LoadingOr[String] = loadingMonad.flatMap(getOrderStatus(orderId)) { stat =>
-    trackLocation(stat)
+  val orderLocation = loadingMonad.flatMap(getOrderStatus(orderId)) { status =>
+    trackLocation(status)
   }
 
   // use extension methods
   import cats.syntax.flatMap._
   import cats.syntax.functor._
 
-  val orderLoc: LoadingOr[String] = for {
-    status   <- getOrderStatus(orderId)
-    location <- trackLocation(status)
-  } yield location
+  val result: LoadingOr[String] = for {
+    status <- getOrderStatus(orderId) // LoadingOr[OrderStatus]
+    loc    <- trackLocation(status)   // LoadingOr[String]
+  } yield loc
 
-  // exercise: service api layer for web app
-  case class Connection(host: String, port: String)
-  val config: Map[String, String] = Map(
+  final case class Connection(host: String, port: String)
+
+  val config = Map(
     "host" -> "localhost",
-    "port" -> "8080"
+    "port" -> "4040"
   )
 
   trait HttpService[F[_]] {
-    def getConnection(cfg: Map[String, String]): F[Connection]
-    def issueRequest(connection: Connection, payload: String): F[String]
+    def getConnection(config: Map[String, String]): F[Connection] = ???
+    def issueRequest(connection: Connection, payload: String): F[String] = ???
   }
 
-  // Requirements
-  // if the host and port are found in the config map then return a M containing a connection with those
-  // or else method will fail according to the logic of the type F
-  // for Try it will return Failure, Option -> None, Future -> Failed, Either -> Left etc
+  def sendRequest[F[_]: Monad](configuration: Map[String, String], httpService: HttpService[F], message: String): Unit = for {
+    conn <- httpService.getConnection(configuration)
+    _    <- httpService.issueRequest(conn, message)
+  } yield ()
 
-  // the issueRequest method returns a F containing the string: "request" (payload) has been accepted", if the
-  // payload is less than
+  class HttpServiceImpl extends HttpService[Try] {
 
-  object OptionHttpService extends HttpService[Option] {
-    override def getConnection(cfg: Map[String, String]): Option[Connection] = for {
-      h <- cfg.get("host")
-      p <- cfg.get("port")
-    } yield Connection(h, p)
+    override def getConnection(config: Map[String, String]): Try[Connection] = {
+      if (config.isDefinedAt("host") && config.isDefinedAt("port")) scala.util.Success(Connection(config("host"), config("port")))
+      else scala.util.Failure(new IllegalStateException("both host and port are required"))
+    }
 
-    override def issueRequest(connection: Connection, payload: String): Option[String] =
-      if (payload.length >= 20) None
-      else Some(s"Request $payload has been accepted.")
+    override def issueRequest(connection: Connection, payload: String): Try[String] = {
+      println(s"sending msg: $payload")
+      scala.util.Success("Request has been sent successfully")
+    }
 
   }
 
-  object AggressiveHttpService extends HttpService[ErrorOr] {
-    override def getConnection(cfg: Map[String, String]): ErrorOr[Connection] =
-      if (!cfg.contains("host") || !cfg.contains("port")) Left(new RuntimeException("Connection could not be established"))
-      else Right(Connection(cfg("host"), cfg("port")))
+  class HttpServiceOption extends HttpService[Option] {
+    override def getConnection(config: Map[String, String]): Option[Connection] = {
+      if (config.isDefinedAt("host") && config.isDefinedAt("port")) Some(Connection(config("host"), config("port")))
+      else None
+    }
 
-    override def issueRequest(connection: Connection, payload: String): ErrorOr[String] =
-      if (payload.length >= 20) Left(new RuntimeException("Request size too big."))
-      else Right(s"Request $payload has been accepted.")
+    override def issueRequest(connection: Connection, payload: String): Option[String] = {
+      println(s"sending msg: $payload")
+      Some("Request has been sent successfully")
+    }
   }
 
-  import cats.syntax.flatMap._ // brings in for comprehensions
-  import cats.syntax.functor._ // brings in map
-  def getResponse[F[_]: Monad](service: HttpService[F], payload: String): F[String] = for {
-    conn <- service.getConnection(config)
-    resp <- service.issueRequest(conn, payload)
-  } yield resp
+  class HttpServiceLoadingOr extends HttpService[LoadingOr] {
+    override def getConnection(config: Map[String, String]): LoadingOr[Connection] = {
+      if (config.isDefinedAt("host") && config.isDefinedAt("port")) Right(Connection(config("host"), config("port")))
+      else Left("Something went wrong cuz we lack host and port")
+    }
+    override def issueRequest(connection: Connection, payload: String): LoadingOr[String] = {
+      println(s"sending msg: $payload")
+      Right("Request has been sent successfully")
+    }
+  }
+
+  val serviceTry       = new HttpServiceImpl
+  val serviceOption    = new HttpServiceOption
+  val serviceLoadingOr = new HttpServiceLoadingOr
+
+  import cats.instances.try_._
+  import cats.instances.option._
 
   def main(args: Array[String]): Unit = {
-    val responseOption = OptionHttpService.getConnection(config).flatMap(conn => OptionHttpService.issueRequest(conn, "OptionHttpService"))
 
-    val forCompr = for {
-      conn <- OptionHttpService.getConnection(config)
-      resp <- OptionHttpService.issueRequest(conn, "OptionHttpService")
-    } yield resp
-
-    println(responseOption)
-    println(forCompr)
-
-    println {
-      for {
-        conn <- AggressiveHttpService.getConnection(config)
-        resp <- AggressiveHttpService.issueRequest(conn, "Payload")
-      } yield resp
-    }
-
-    println {
-      getResponse(AggressiveHttpService, "payload")
-    }
-
-    println {
-
-    }
+    sendRequest[Try](config, serviceTry, "Hello, baby!")
+    sendRequest[Option](config, serviceOption, "Hey hey")
+    sendRequest[LoadingOr](config, serviceLoadingOr, "Hello, sweetheart")
 
   }
 

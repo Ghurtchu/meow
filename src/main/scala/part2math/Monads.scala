@@ -1,132 +1,111 @@
 package part2math
 
 import java.util.concurrent.Executors
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 import scala.util.Try
-import cats.instances.try_._
 
 object Monads {
 
   // lists
+
   val numbers = 1 :: 2 :: 3 :: Nil
-  val chars = 'a' :: 'b' :: 'c' :: Nil
+  val chars   = 'a' :: 'b' :: 'c' :: Nil
 
-  val combination = for {
-    n <- numbers
-    c <- chars
-  } yield (n, c)
+  // all combinations of (int, char)
+  val combination: List[(Int, Char)] =
+    numbers.flatMap(n => chars.map(c => (n, c)))
 
-  val maybeNum = Option(5)
-  val maubeChar = Option('5')
+  val combinationForComp: List[(Int, Char)] =
+    for {
+      n <- numbers
+      c <- chars
+    } yield (n, c)
 
-  val combination2: Option[(Int, Char)] = for {
-    n <- maybeNum
-    c <- maubeChar
-  } yield (n, c)
+  // options
+  val nOpt = Option(2)
+  val cOpt = Option('d')
+  val optComb: Option[(Int, Char)] = nOpt.flatMap(n => cOpt.map(c => (n, c)))
+  val optCombForComp: Option[(Int, Char)] =
+    for {
+      n <- nOpt
+      c <- cOpt
+    } yield (n, c)
 
-  // futures
+  import scala.concurrent.Future
   implicit val ec: ExecutionContext = ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(8))
 
-  val numberFuture = Future(42)
-  val charFuture = Future('c')
+  val numFut = Future(42)
+  val charFut = Future('Z')
 
-  val combinedFuture: Future[(Int, Char)] = for {
-    n <- numberFuture
-    c <- charFuture
-  } yield (n, c)
+  val comb = numFut.flatMap(n => charFut.map(c => (n, c)))
+  val combForComp =
+    for {
+      n <- numFut
+      c <- charFut
+    } yield (n, c)
 
   /**
    * Pattern
    * - wrapping a value into a M value
    * - the flatMap mechanism
-   *
-   * MONADS
    */
 
-  trait MyMonad[M[_]] {
-    def pure[A](value: A): M[A] // lift
-
-    def flatMap[A, B](ma: M[A])(f: A => M[B]): M[B]
-
-    def map[A, B](ma: M[A])(f: A => B): M[B] = flatMap(ma)(x => pure(f(x)))
+  trait MyMonad[F[_]] {
+    def pure[A](value: A): F[A] // wrap
+    def map[A, B](fa: F[A])(f: A => B): F[B] = flatMap(fa)(f andThen pure)
+    def flatMap[A, B](fa: F[A])(f: A => F[B]): F[B] // chaining computations which require result from previous ones
   }
 
   // Cats monad
-
   import cats.Monad
-  import cats.instances.option._
-
-  val optionMonad = Monad[Option]
-  val lifted: Option[Int] = optionMonad.pure(5) // Option(4)
-  val aTransformedOption: Option[Int] = optionMonad.flatMap(lifted)(x => if (x % 3 == 0) Some(x + 1) else None)
+  import cats.instances.option._ // implicit Monad[Option]
+  val optionMonad = Monad[Option] // summoner which summons implicit instance from scope
+  val anOption = optionMonad.pure[Int](5)
+  val flatMapped = optionMonad.flatMap[Int, String](anOption)(n => Some(n.toString))
 
   import cats.instances.list._
 
-  val listMonad = Monad[List]
-  val aList = listMonad.pure(3) // List(3)
-  val aTransformedList = listMonad.flatMap(aList)(l => List(l, l + 1, l + 2))
-
-  // future
+  val listMonad: Monad[List] = Monad[List]
+  val aList = listMonad.pure[Int](5)
+  val flatMappedList = listMonad.flatMap[Int, String](aList)(_ => "xD" :: Nil)
 
   import cats.instances.future._
+  import cats.instances.try_._
 
-  val futureMonad = Monad[Future]
-  val aFuture = futureMonad.pure(5) // lift into future
-  val aTransformedFuture = futureMonad.flatMap(aFuture)(fut => Future(fut + 5))
-
-  // specialized API
-  def getPairs(ints: List[Int], chars: List[Char]): List[(Int, Char)] = for {
-    n <- ints
-    c <- chars
-  } yield (n, c)
-
-
-  // you can't generalize more than that
-  def pairs[F[_] : Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+  // specialized API, combine two generic values wrapped by container
+  def pairs[F[_]: Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
     Monad[F].flatMap(fa)(a => Monad[F].map(fb)(b => (a, b)))
 
-  val listTuples: List[(Int, Char)] =
-    pairs(1 :: 2 :: Nil, 'a' :: 'b' :: Nil)
-  val futureTuple: Future[(Int, String)] =
-    pairs(Future(42), Future("past"))
-  val tryTuple: Try[(Int, Boolean)] =
-    pairs(Try(42 / 0), Try(10 % 2 == 0))
-  val optionTuple: Option[(BigDecimal, BigInt)] =
-    pairs(Option(BigDecimal(1L)), Option(BigInt(2)))
+  pairs[Option, Int, String](Option(5), Option("5")) // Option((5, "5))
+  pairs[Future, Boolean, Boolean](Future(true), Future(false)) // Future((true, false))
+  pairs[Try, Char, Short](Try('c'), Try(0)) // Try(('c', 0))
 
-  // extension methods of monads - pure and flatMap
-  // weirder imports
+  // extension methods - methods defined on F[_]
 
-  import cats.syntax.applicative._ // weaker monad which only has pure method
+  import cats.syntax.applicative._ // pure is defined on applicative
+  val opt = 1.pure[Option] // will use implicit Monad[Option]
+  val lst = 1.pure[List]
 
-  val oneOption: Option[Int] = 1.pure[Option] // Monad[Option] will be used here
-  val oneList: List[Int] = 1.pure[List] // List(1)
+  import cats.syntax.flatMap._ // flatMap is here for type constructors (Option, List, Future, Try, Either etc...)
+  import cats.syntax.option._
 
-  import cats.syntax.flatMap._ // flatMap is here
+  val oneOptionTransformed = opt.flatMap(x => (x + 1).some)
+  val oneOptionTransformed2 = opt.flatMap(x => (x + 1).pure[Option])
 
-  val oneOptionMapped = oneOption.flatMap(x => (x + 1).pure[Option])
-
-  def main(args: Array[String]): Unit = {
-    println(aTransformedList)
-    println(aTransformedFuture)
-    println {
-      pairs(1 :: 2 :: Nil, 'a' :: 'b' :: Nil)
-    }
-  }
-
-  import cats.syntax.monad._
-
-  val composedOptionFor: Option[Int] = for {
+  import cats.syntax.functor._ // map extension method for type constructors (Option, List, Future, Try, Either etc..)
+  val d = 1.pure[Option].map(_ + 2)
+  val comp = for {
     one <- 1.pure[Option]
     two <- 2.pure[Option]
   } yield one + two
 
-  import cats.syntax.functor._
+  // implement shorted version of getPairs using for-compr
+  def pairsWithForExpression[F[_]: Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+    for {
+      a <- fa
+      b <- fb
+    } yield (a, b)
 
-  def pairsFor[F[_] : Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] = for {
-    a <- fa // cats.syntax.flaMap._
-    b <- fb // cats.syntax.functor._
-  } yield (a, b)
 
 
 }
