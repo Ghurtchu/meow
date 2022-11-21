@@ -4,16 +4,18 @@ import scala.concurrent.Future
 
 object MonadTransformers {
 
-  def sumAllOptions(options: List[Option[Int]]): Int = options.map {
-    case Some(value) => value
-    case None => 0
-  }.sum
+  object without_monad_transformers_1 {
+    def sumAllOptions(options: List[Option[Int]]): Int = options.map {
+      case Some(value) => value
+      case None => 0
+    }.sum
 
-  def sumAllOptions2(os: List[Option[Int]]): Int = os.filter(_.isDefined).map(_.get).sum
+    def sumAllOptions2(os: List[Option[Int]]): Int = os.filter(_.isDefined).map(_.get).sum
 
-  def sumAllOpts(options: List[Option[Int]]): Int = (for {
-    opt <- options
-  } yield opt.fold(0)(identity)).sum
+    def sumAllOpts(options: List[Option[Int]]): Int = (for {
+      opt <- options
+    } yield opt.fold(0)(identity)).sum
+  }
 
   import cats.data.OptionT // OptionTransformer
   import cats.instances.list._ // fetch an implicit OptionT[List]
@@ -36,7 +38,7 @@ object MonadTransformers {
   // and provides flatMap and map methods
   // when you have wrapper monad(list) over your own monad(option)
 
-  object without_monad_transformers {
+  object without_monad_transformers_2 {
 
     val ints = Option(1) :: Option(2) :: Nil
     val chars = Option('a') :: Option('b') :: None :: Nil
