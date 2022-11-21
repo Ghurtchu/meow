@@ -22,6 +22,21 @@ object MonadTransformers {
   import cats.data.OptionT // OptionTransformer
   import cats.instances.list._ // fetch an implicit OptionT[List]
 
+  object monad_transformers {
+
+    import cats.syntax.flatMap._
+    import cats.syntax.functor._
+
+    val eitherT: EitherT[List, Char, Boolean] = EitherT(Left('a') :: Left('b') :: Left('c') :: Right(true) :: Right(false) :: Nil)
+    val optionT: OptionT[List, Int] = OptionT(Some(1) :: Some(2) :: None :: None :: Some(3) :: Nil)
+
+    val data: OptionT[List, (Boolean, Int)] = for {
+      bool <- eitherT.toOption
+      int  <- optionT
+    } yield (bool, int)
+
+  }
+
   // OptionT[List, Int] => List[Option[Int]] = middle -> left -> right
   val intOptions: OptionT[List, Int] = OptionT(List(Option(1), Option(2)))
   val charOptions: OptionT[List, Char] = OptionT(List(Option('a'), Option('b'), None))
