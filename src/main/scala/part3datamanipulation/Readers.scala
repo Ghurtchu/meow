@@ -47,7 +47,7 @@ object Readers {
   val http: HttpService           = httpServiceReader run config
   val ec: ExecutionContextService = ecReader run config
 
-  val orderStatus: Reader[Config, Int] = dbReader.map(_.getOrderStatus(5))
+  val orderStatus: Reader[Config, String] = dbReader.map(_.getOrderStatus(5))
 
   val reader: Reader[Config, Long] = dbReader
     .map(_.getOrderStatus(10))
