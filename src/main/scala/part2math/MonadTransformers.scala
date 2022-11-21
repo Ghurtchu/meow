@@ -2,8 +2,6 @@ package part2math
 
 import cats.data.EitherT
 
-import scala.concurrent.Future
-
 object MonadTransformers {
 
   object without_monad_transformers_1 {
@@ -24,9 +22,6 @@ object MonadTransformers {
 
   object monad_transformers {
 
-    import cats.syntax.flatMap._
-    import cats.syntax.functor._
-
     val eitherT: EitherT[List, Char, Boolean] = EitherT(Left('a') :: Left('b') :: Left('c') :: Right(true) :: Right(false) :: Nil)
     val optionT: OptionT[List, Int] = OptionT(Some(1) :: Some(2) :: None :: None :: Some(3) :: Nil)
 
@@ -34,6 +29,33 @@ object MonadTransformers {
       bool <- eitherT.toOption
       int  <- optionT
     } yield (bool, int)
+
+  }
+
+  object monad_transformers_2 {
+
+    // list of tries
+    import cats.data.OptionT
+    val l1: OptionT[List, Int] = OptionT(Option(1) :: Option(2) :: Nil)
+    val l2: OptionT[List, Int] = OptionT(Option(10) :: Option(20) :: Nil)
+
+    val res: OptionT[List, (Int, Int)] = for {
+      a <- l1
+      b <- l2
+    } yield (a, b)
+
+    // without monad transformers we'd write
+    val list1: List[Option[Int]] = Some(1) :: Some(2) :: Nil
+    val list2: List[Option[Int]] = Some(10) :: Some(20) :: Nil
+
+    val res2 = for {
+      opt1 <- list1
+      opt2 <- list2
+    } yield (opt1, opt2) match {
+      case (Some(a), Some(b)) => (a, b)
+      case _                  => None
+    }
+
 
   }
 
@@ -48,11 +70,9 @@ object MonadTransformers {
   import scala.concurrent.ExecutionContext.Implicits.global
   // Future[Option[Boolean]] = OptionT[Future, Boolean]
   val futureOfOptionOFBoolean: OptionT[Future, Boolean] = OptionT {
-    Future(Some(true))
+    Future(Option(true))
   }
 
-  // Option[Either[String, String]] = EitherT[Option, String, String]
-  val eitherInOption: EitherT[Option, String, String] = EitherT(Some(Left("What?!")))
 
   // let's say you wanna couple (Int, Char)
   // Since they are wrapped by Option it will be clunky as hell
@@ -83,8 +103,6 @@ object MonadTransformers {
 
   }
 
-  import cats.data.EitherT // EitherTransformer
-
   val eithers: EitherT[List, String, Int] = EitherT(
     List(
       Right(5),
@@ -96,43 +114,10 @@ object MonadTransformers {
     )
   )
 
-  import scala.concurrent.ExecutionContext.Implicits.global
-
-  val futureOfEither: EitherT[Future, String, Int] = EitherT(Future(Left("Wrong")))
-  val futureOfEither2: EitherT[Future, String, Int] = EitherT(Future(Right(42)))
-
-  val bandwidth = Map(
-    "server1.rockthejvm.com" -> 50,
-    "server2.rockthejvm.com" -> 300,
-    "server3.rockthejvm.com" -> 170
-  )
-
-  type AsyncResponse[A] = EitherT[Future, String, A]
-
-  // Int = bandwidth of server
-  def getBandwidth(serverName: String): AsyncResponse[Int] = bandwidth.get(serverName) match {
-    case Some(value) => EitherT(Future(Right(value)))
-    case None        => EitherT(Future(Left(s"Server $serverName unreachable")))
-  }
-
-  import cats.instances.future._
-
-  // TODO 1
-  def canWithstandSurge(s1: String, s2: String): AsyncResponse[Boolean] = for {
-    band1 <- getBandwidth(s1) // Future[Either[String, Int]] -> Future(Right(42)) ->
-    band2 <- getBandwidth(s2)
-  } yield band1 + band2 > 250
-
-  // TODO 2
-  def generateTrafficSpikeReport(s1: String, s2: String): AsyncResponse[String] =
-    canWithstandSurge(s1, s2).transform {
-      case Left(reason) => Left(s"Servers can not cope with spike due to $reason")
-      case Right(false) => Left(s"Servers can not cope")
-      case Right(true)  => Right("Servers can cope with the spike !!!")
-    }
 
   def main(args: Array[String]): Unit = {
-    println(values)
+    println(monad_transformers_2.res)
+    println(monad_transformers_2.res2)
   }
 
 }
