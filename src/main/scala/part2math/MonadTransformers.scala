@@ -36,6 +36,9 @@ object MonadTransformers {
     Future(Some(true))
   }
 
+  // Option[Either[String, String]] = EitherT[Option, String, String]
+  val eitherInOption: EitherT[Option, String, String] = EitherT(Some(Left("What?!")))
+
   // let's say you wanna couple (Int, Char)
   // Since they are wrapped by Option it will be clunky as hell
 
