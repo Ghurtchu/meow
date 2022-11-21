@@ -1,82 +1,91 @@
 package part3datamanipulation
 
-import scala.annotation.tailrec
-
 object Readers {
 
-  // initial configuration file defines the following layers:
-  // DB layer
-  // http layer
-  // business logic layer
+  /**
+   * layers:
+   * - config file
+   * - DB layer (db credentials in config file)
+   * - HTTP layer (port, host and other things in config file)
+   * - a business logic layer (may depend on config as well)
+   * Goal: feed config to all these services
+   */
 
-  final case class Config(dbUsername: String, dbPassword: String, host: String, port: Int, nThreads: Int, replyTo: String)
+  final case class Config(dbUserName: String, dbPassword: String, host: String, port: Int, nThreads: Int)
 
-  final case class DBConnection(username: String, password: String) {
+  final case class DbConnection(username: String, password: String) {
     def getOrderStatus(orderId: Long): String = {
-      // select statements here ...
-
-      "Mock Response"
+      // run queries in db
+      "Successful"
     }
-
-    def getLastOrderId(userName: String): Long = 123456L
-
+    def getLastOrderId(userName: String): Long = 10
   }
 
   final case class HttpService(host: String, port: Int) {
-    def start(): Unit = println("Server started") // this would start the actual server
+    def start(): Unit = println(s"Server started, listening on port: $port")
   }
 
-  // bootstrap
-  val config: Config = Config("daniel", "rockthejvm!", "localhost", 1234, 8, "daniel@rockthejvm.com")
+  final case class ExecutionContextService(nThreads: Int)
 
-  // Reader = data processing type from cats
+  val config: Config = Config("nika", "pass-pass", "localhost", 1234, 8)
+
   import cats.data.Reader
-  val dbReader: Reader[Config, DBConnection] = Reader { config =>
-    DBConnection(config.dbUsername, config.dbPassword)
-  }
-  val dbConn = dbReader.run(config)
 
-  // Reader[I, O]
-  val dainelsOrderStatusReader: Reader[Config, String] = dbReader.map { conn =>
-    conn.getOrderStatus(100L)
+  val dbReader: Reader[Config, DbConnection] = Reader { cfg =>
+    DbConnection(cfg.dbUserName, cfg.dbPassword)
   }
 
-  val danielsOrderStatus = dainelsOrderStatusReader.run(config)
-
-  def getLastOrderStatus(username: String): String = {
-    (for {
-      lastOrderId <- dbReader.map(_.getLastOrderId(username))
-      status      <- dbReader.map(_.getOrderStatus(lastOrderId))
-    } yield status).run(config)
+  val httpServiceReader: Reader[Config, HttpService] = Reader { cfg =>
+    HttpService(cfg.host, cfg.port)
   }
 
-  /*
-  * Pattern
-  *  1. create initial data structure
-  *  2. create reader which specifies how that data structure will be manipulated later
-  *  3. you can then map & flatMap the reader to produce derived information
-  *  4. when u need the final piece of information we call run with initial data structure
-  */
-
-  // TODO
-  final case class EmailService(emailReplyTo: String) {
-    def send(address: String, contents: String): String = s"Sending email to $address with $contents"
+  val ecReader: Reader[Config, ExecutionContextService] = Reader { cfg =>
+    ExecutionContextService(cfg.nThreads)
   }
 
+  val conn: DbConnection          = dbReader run config
+  val http: HttpService           = httpServiceReader run config
+  val ec: ExecutionContextService = ecReader run config
 
-  // fetch the status of their last order
-  // and then email them with EmailService
-  // "Your oder has the status: $status"
+  val orderStatus: Reader[Config, Int] = dbReader.map(_.getOrderStatus(5))
 
-  def emailUser(username: String, userEmail: String, replyTo: String): Unit = for {
-      service <- Reader[Config, EmailService](conf => EmailService(conf.replyTo))
-      orderId <- Reader[DBConnection, Long](conn => conn.getLastOrderId(username))
-      status  <- Reader[DBConnection, String](conn => conn.getOrderStatus(orderId))
-      _       <- Reader[String, Unit](msg => service.send(userEmail, s"Your order has status $status"))
-    } yield ()
+  val reader: Reader[Config, Long] = dbReader
+    .map(_.getOrderStatus(10))
+    .flatMap(lastOrderId => dbReader.map(_.getLastOrderId(lastOrderId)))
 
-  def main(args: Array[String]): Unit = {
+
+  val forExpression: Reader[Config, Long] = for {
+    lastOrderId <- dbReader.map(_.getOrderStatus(10))
+    status      <- dbReader.map(_.getLastOrderId(lastOrderId))
+  } yield status
+
+  object exercise {
+
+    case class EmailService(emailReplyTo: String) {
+      def sendEmail(address: String, contents: String): String =
+        s"From $emailReplyTo to $address >>>>> $contents"
+    }
+
+    val emailServiceReader: Reader[Config, EmailService] = Reader(cfg => EmailService(cfg.dbUserName))
+
+    def emailUser(username: String, userEmail: String) = {
+      // fetch status of their last order
+      // email them with the email service: "Your order status: $status"
+
+      val a = for {
+        lastOrderStatus <- dbReader.map(_.getLastOrderId(username))
+        email <- emailServiceReader.map(_.sendEmail("awdwad", s"Hello, status: $lastOrderStatus"))
+      } yield email
+
+      import cats.Id
+
+      val email: Id[String] = a.run(config)
+
+    }
+
+    // Reader reminds me of dependency injection!
 
   }
+
 
 }
