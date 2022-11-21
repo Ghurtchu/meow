@@ -23,6 +23,9 @@ object Writers {
 
   val mappedBoth2 = writer.mapBoth { (logs, int) => ("Did something great again" :: logs, int * 2) }
 
+  import cats.instances.list._ // import monoid instance for list which will be Nil, List.empty[A] or List()
+  mappedBoth.reset
+
   val writerA: Writer[Vector[String], Int] = Writer(
     Vector("Log A1", "Log A2"), 10)
 
@@ -34,6 +37,10 @@ object Writers {
     a <- writerA
     b <- writerB
   } yield (a, b)
+
+  // reset the logs, compiles because there's implicit instance for vector monoid empty which is empty vector
+  composite.reset
+
 
   def main(args: Array[String]): Unit = {
 
