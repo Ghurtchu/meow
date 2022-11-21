@@ -1,5 +1,7 @@
 package part2math
 
+import cats.data.EitherT
+
 import scala.concurrent.Future
 
 object MonadTransformers {
@@ -23,6 +25,16 @@ object MonadTransformers {
   // OptionT[List, Int] => List[Option[Int]] = middle -> left -> right
   val intOptions: OptionT[List, Int] = OptionT(List(Option(1), Option(2)))
   val charOptions: OptionT[List, Char] = OptionT(List(Option('a'), Option('b'), None))
+
+  // List[Either[Int, String]] => EitherT
+  val listEithers: EitherT[List, Int, String] = EitherT(List(Left(2), Left(3), Right("Yeah!"), Right("No!")))
+
+  import scala.concurrent.Future
+  import scala.concurrent.ExecutionContext.Implicits.global
+  // Future[Option[Boolean]] = OptionT[Future, Boolean]
+  val futureOfOptionOFBoolean: OptionT[Future, Boolean] = OptionT {
+    Future(Some(true))
+  }
 
   // let's say you wanna couple (Int, Char)
   // Since they are wrapped by Option it will be clunky as hell
