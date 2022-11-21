@@ -44,6 +44,8 @@ object Evaluation {
     s"$steps and then play that got damn guitar" // it will be recomputed
   }
 
+  def defer[T](eval: => Eval[T]): Eval[T] = Eval.later(()).flatMap(_ => eval)
+
   def main(args: Array[String]): Unit = {
     instant.value // like scala val
 
@@ -57,7 +59,6 @@ object Evaluation {
 
     println(tutorial.value)
     println(tutorial.value)
-
   }
 
 }
