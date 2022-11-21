@@ -33,6 +33,17 @@ object Evaluation {
     l <- lazyMemoized
   } yield i :: o :: l :: Nil
 
+  val tutorial = Eval.always {
+    println("Step 1")
+    "Put the guitar on your lap"
+  }.map { s =>
+    println("Step 2")
+    s"$s then put your left hand on the neck"
+  }.memoize.map { steps => // memoize up to this point so step 1 and step 2 will not be recomputed
+    println("Step 3")
+    s"$steps and then play that got damn guitar" // it will be recomputed
+  }
+
   def main(args: Array[String]): Unit = {
     instant.value // like scala val
 
@@ -43,6 +54,9 @@ object Evaluation {
     println(lazyMemoized.value) // like scala lazy val
 
     println(composed.value)
+
+    println(tutorial.value)
+    println(tutorial.value)
 
   }
 
