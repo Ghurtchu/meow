@@ -115,9 +115,21 @@ object MonadTransformers {
   )
 
 
+
+  def map[A, B](list: List[Option[A]])(f: A => B): List[Option[B]] = {
+    import cats.data.OptionT
+    val mapped = for {
+      a <- OptionT[List, A](list)
+    } yield f(a)
+
+    mapped.value
+  }
+
+
   def main(args: Array[String]): Unit = {
     println(monad_transformers_2.res)
     println(monad_transformers_2.res2)
+    println(map[Int, String](List(Some(1), Some(2), Some(3), None, Some(4), None, None, Some(5)))(a => s"{$a}"))
   }
 
 }
