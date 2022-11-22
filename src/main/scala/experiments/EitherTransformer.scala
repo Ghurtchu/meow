@@ -10,11 +10,11 @@ object EitherTransformer extends scala.App {
   case object Unrecoverable extends AppError
   case object Recoverable   extends AppError
 
-  val recoverableError: EitherT[Option, String, Int] = EitherT.fromEither[Option]
+  EitherT.fromEither[Option]
     .apply[AppError, Int](Left(Recoverable))
     .leftSemiflatMap {
       case Unrecoverable => None
-      case Recoverable   => Some("42")
+      case Recoverable   => Some("Success")
     }
 
   val unrecoverableError: EitherT[Option, String, Int] = EitherT.fromEither[Option]
