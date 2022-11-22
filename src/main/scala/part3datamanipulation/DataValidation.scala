@@ -23,8 +23,20 @@ object DataValidation {
     val isEven: List[String] = if (n % 2 == 0) Nil else List("Is odd")
     val isNotEqualTo50: List[String] = if (n != 50) Nil else List("it's 50")
 
-    if (isPositive.nonEmpty || isLessThan100.nonEmpty || isEven.nonEmpty || isNotEqualTo50.nonEmpty) Left(isPositive ::: isLessThan100 ::: isEven ::: isNotEqualTo50)
+    if (isPositive.nonEmpty || isLessThan100.nonEmpty || isEven.nonEmpty || isNotEqualTo50.nonEmpty) Left(isPositive ++ isLessThan100 ++ isEven ++ isNotEqualTo50)
     else Right(n)
+  }
+
+  import cats.Semigroup
+  import cats.instances.list._
+
+  implicit val intSemigroup: Semigroup[Int] = Semigroup.instance[Int](Math.max)
+
+  def validateNumber(n: Int): Validated[List[String], Int] = {
+    Validated.cond(n > 0, n, List("Number must be even"))
+      .combine(Validated.cond(n < 100, n, List("Number must be non-negative")))
+      .combine(Validated.cond(n % 2 == 0, n, List("Is odd")))
+      .combine(Validated.cond(n != 50, n, List("it's 50")))
   }
 
 
@@ -32,6 +44,7 @@ object DataValidation {
     println(testNumber(4))
     println(testNumber(5))
 
+    println(validateNumber(98))
   }
 
 }
