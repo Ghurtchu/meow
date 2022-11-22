@@ -31,7 +31,6 @@ object EitherTransformer extends scala.App {
       case Recoverable   => Some("100")
     }
 
-  println(recoverableError.value)
   println(unrecoverableError.value)
   println(successValue.value)
 
