@@ -50,10 +50,37 @@ object FunctionalState {
 
   }
 
+  object todo_online_store {
+
+    final case class ShoppingCart(items: List[String], total: Double)
+
+    def addToCart(item: String, price: Double): State[ShoppingCart, Double] =
+      State(s => (ShoppingCart(item :: s.items, price + s.total), price + s.total))
+
+    val state = addToCart("a", 10.0)
+      .flatMap(_ => addToCart("b", 20.0))
+      .flatMap(_ => addToCart("c", 30.0))
+      .run(ShoppingCart(Nil, 0.0))
+      .value
+  }
+
+  object mental_gymnastic_exercises {
+
+    def inspect[A, B](f: A => B): State[A, B] = State[A, B](a => (a, f(a)))
+
+    def get[A]: State[A, A] = State[A, A](a => (a, a))
+
+    def set[A](value: A): State[A, Unit] = State[A, Unit](a => (a, ()))
+
+    def modify[A](f: A => A): State[A, Unit] = State[A, Unit](a => (f(a), ()))
+
+  }
+
   def main(args: Array[String]): Unit = {
 
     println(composite.run(10).value)
     println(compositeAcc.run(50).value)
+    println(todo_online_store.state)
 
   }
 
