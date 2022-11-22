@@ -74,6 +74,14 @@ object FunctionalState {
 
     def modify[A](f: A => A): State[A, Unit] = State[A, Unit](a => (f(a), ()))
 
+    val program: State[Int, (Int, Int, Int)] = for {
+      a <- get[Int]
+      _ <- set[Int](a + 10)
+      b <- get[Int]
+      _ <- modify[Int](_ + 43)
+      c <- inspect[Int, Int](_ * 2)
+    } yield (a, b, c)
+
   }
 
   def main(args: Array[String]): Unit = {
@@ -81,6 +89,7 @@ object FunctionalState {
     println(composite.run(10).value)
     println(compositeAcc.run(50).value)
     println(todo_online_store.state)
+    println(mental_gymnastic_exercises.program.run(10).value)
 
   }
 
