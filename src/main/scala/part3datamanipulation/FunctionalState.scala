@@ -38,6 +38,17 @@ object FunctionalState {
     f2 <- secondTransformation
   } yield f1 :: f2 :: Nil
 
+  object functions {
+
+    val f1: Int => (Int, String) = n => (n + 1, "added 1")
+    val f2: Int => (Int, String) = n => (n * 10, "multiplied by 10")
+
+    val compositeFunc =
+      f1.andThen {
+        case (num, msg) => (f2(num), msg concat msg)
+      } // does not scale well
+
+  }
 
   def main(args: Array[String]): Unit = {
 
