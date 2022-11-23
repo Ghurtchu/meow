@@ -7,7 +7,7 @@ object WeakerMonads {
   import cats.syntax.functor._
   import cats.instances.list._
 
-  def getPairs[F[_]: FlatMap, A, B](ns: F[Int], chs: F[Char]): F[(Int, Char)] =
+  def getPairs[F[_]: FlatMap, A, B](ns: F[A], chs: F[B]): F[(A, B)] =
     for {
       n <- ns
       c <- chs
