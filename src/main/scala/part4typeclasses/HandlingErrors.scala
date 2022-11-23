@@ -21,6 +21,22 @@ object HandlingErrors {
   type ErrorOr[A] = Either[String, A] // may fail with String or succeed with A
   val monadErrorEither = MonadError[ErrorOr, String] // must be same as Either[String, _]
 
+  val success = monadErrorEither.pure[Int](32) // Either[String, Int] => Right(32)
+  val failure = monadErrorEither.raiseError[Int]("Something wrong") // Left("Something wrong")
+
+  val handled: ErrorOr[Int] = monadErrorEither.handleError(failure) {
+    case "Badness" => 44
+    case _         => 99
+  }
+
+  val handled2: ErrorOr[Int] = monadErrorEither.handleErrorWith(failure) {
+    case "wtf" => Right(44)
+    case _     => Right(100)
+  }
+
+  // "filter" API
+  val filteredSuccess = monadErrorEither.ensure(success)("Number too small")(_ > 100)
+
   def main(args: Array[String]): Unit = {
 
   }
