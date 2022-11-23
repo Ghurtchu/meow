@@ -1,11 +1,8 @@
-package experiments
-
-import cats.{Functor, Semigroupal}
+package part4typeclasses
 
 object ApplyExample {
 
   import cats.Apply
-
   import cats.instances.option._
 
   val applyOption: Apply[Option] = Apply[Option]

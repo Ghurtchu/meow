@@ -1,4 +1,4 @@
-package experiments
+package part4typeclasses
 
 object Applicatives {
 
@@ -31,9 +31,6 @@ object Applicatives {
     val aValidVal = Validated valid 40
     val mapped    = aValidVal.map(_ * 50)
     val applic    = Applicative[ErrorOrs]
-
-    import cats.syntax.applicative._
-    import cats.syntax.functor._
 
     object wow_i_am_amazed {
       val f: Int => String = _.toString
