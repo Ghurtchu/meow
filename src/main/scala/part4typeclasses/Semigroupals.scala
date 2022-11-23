@@ -47,6 +47,7 @@ object Semigroupals {
         b <- fb
       } yield (a, b)
 
+
     def productWithMonadsUgly[F[_]: Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
       Monad[F].flatMap(fa)(a => Monad[F].map(fb)(b => (a, b)))
 
