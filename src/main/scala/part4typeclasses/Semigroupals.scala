@@ -1,5 +1,7 @@
 package part4typeclasses
 
+import cats.data.Validated
+
 import java.util.concurrent.Executors
 import scala.concurrent.ExecutionContext
 
@@ -46,8 +48,21 @@ object Semigroupals {
 
     // Monads are Semigroupals cuz Monads can combine elements
 
+    type ErrorsOr[A] = Validated[List[String], A]
+    val validatedSemigroupal = Semigroupal[ErrorsOr]
 
+    import cats.syntax.validated._
 
+    val validIdsCombination = validatedSemigroupal.product(
+      List("Something wrong").invalid,
+      List("Sometjing else wrong").invalid
+    )
+
+    type EitherErrorsOr[A] = Either[List[String], A]
+    import cats.instances.either._
+    val eitherSemigroupal = Semigroupal[EitherErrorsOr]
+
+      
   }
 
 }
