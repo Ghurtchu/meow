@@ -51,14 +51,56 @@ object DataValidation {
   aValidValue.leftMap(err => err concat "!")
   aValidValue.bimap(err => err concat "!", _ + 10)
 
-  Validated.fromOption(Some(10), 10) // fromTry, fromEither
-
+  val valid = Validated.fromOption(Some(10), 10) // fromTry, fromEither
+  valid.toOption
+  valid.toEither // etc
 
   def main(args: Array[String]): Unit = {
     println(testNumber(4))
     println(testNumber(5))
 
     println(validateNumber(98))
+  }
+
+  object form_validation {
+
+    type FormValidation[A] = Validated[List[String], A]
+
+    // conditions(fields: [name, email, password])
+    // - name
+    // - email
+    // - password
+    // rules are:
+    // - name, email and password must be specified
+    // - name must not be blank
+    // - email must contain `@`
+    // - password must have >= 10 characters
+
+    def getValue(form: Map[String, String], fieldName: String): FormValidation[String] =
+      Validated.fromOption(form get fieldName, List(s"Field $fieldName must be specified"))
+
+    def nonBlank(value: String, fieldName: String): FormValidation[String] =
+      Validated.cond(value.length > 0, value, List(s"field $fieldName must not be blank"))
+
+    def emailCheck(email: String): FormValidation[String] =
+      Validated.cond(email.contains("@"), email, List(s"Email must contain `@`"))
+
+    def ensurePassword(pass: String): FormValidation[String] =
+      Validated.cond(pass.length >= 10, pass, List(s"Password must be lengthyyyyy"))
+
+    def validateForm(form: Map[String, String]): FormValidation[String] = {
+
+      import cats.instances.string._ // implicit instance of Semigroup[String] which is just concatenation
+
+      getValue(form, "Name")
+        .andThen(name => nonBlank(name, "Name"))
+        .combine(getValue(form, "Email").andThen(emailCheck))
+        .combine(getValue(form, "Password").andThen(ensurePassword))
+        .map(_ => "All requirements pass")
+
+    }
+
+
   }
 
 }
