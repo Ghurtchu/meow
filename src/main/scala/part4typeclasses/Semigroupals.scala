@@ -41,7 +41,7 @@ object Semigroupals {
     import cats.syntax.flatMap._
     import cats.syntax.functor._
 
-    def productWithMonads[F[_]: Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
+    def productWithMonadsBeautiful[F[_]: Monad, A, B](fa: F[A], fb: F[B]): F[(A, B)] =
       for {
         a <- fa
         b <- fb
