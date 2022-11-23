@@ -39,6 +39,20 @@ object DataValidation {
       .combine(Validated.cond(n != 50, n, List("it's 50")))
   }
 
+  aValidValue
+    .andThen(n => Validated.valid(n + 1))
+
+  aValidValue
+    .ensure(List("Something went wrong")) { n =>
+      n % 2 == 0
+    }
+
+  aValidValue.map( _ + 1)
+  aValidValue.leftMap(err => err concat "!")
+  aValidValue.bimap(err => err concat "!", _ + 10)
+
+  Validated.fromOption(Some(10), 10) // fromTry, fromEither
+
 
   def main(args: Array[String]): Unit = {
     println(testNumber(4))
