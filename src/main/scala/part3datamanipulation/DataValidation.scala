@@ -60,6 +60,19 @@ object DataValidation {
     println(testNumber(5))
 
     println(validateNumber(98))
+
+    println(form_validation.validateForm(Map(
+      "Name" -> "Nika",
+      "Email" -> "nika@gmail.com",
+      "Password" -> "heyHey123!@#412adW"
+    )))
+
+    println(form_validation.validateForm(Map()))
+
+    import cats.syntax.validated._
+    val aValidMeaningOfLife: Validated[Int, Int] = 42.valid[Int]
+    val anError: Validated[String, Int] = "Something went terribly wrong".invalid[Int]
+
   }
 
   object form_validation {
