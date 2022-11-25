@@ -21,8 +21,7 @@ object Folding {
 
     assert(flatMap(data)(n => List(n * 2)) == 2 :: 4 :: 6 :: Nil)
 
-
-
+    assert(filter(data)(_  % 2 == 0) == 2 :: Nil)
 
   }
 
