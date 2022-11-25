@@ -22,6 +22,10 @@ object ContravariantFunctors {
     }
 
     // problem: given Format[MyType] can we also have Format[Option[MyType]]?
+    implicit def getOptionFormat[T: Format]: Format[Option[T]] = new Format[Option[T]] {
+      override def format(value: Option[T]): String = Format[T].format(value.get)
+    }
+
 
   }
 
