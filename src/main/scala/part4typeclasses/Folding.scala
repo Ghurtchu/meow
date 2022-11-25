@@ -16,6 +16,9 @@ object Folding {
 
     import list_exercises._
 
+    val data = 1 :: 2 :: 3 :: Nil
+    assert(map(data)(_ * 2) == 2 :: 4 :: 6 :: Nil)
+
   }
 
 }
