@@ -1,6 +1,6 @@
 package part4typeclasses
 
-import cats.Monoid
+import cats.{Eval, Monoid}
 
 
 object Folding {
@@ -39,6 +39,14 @@ object Folding {
 
     val combined: Int = Foldable[List].foldLeft(1 :: 2 :: 3 :: Nil, 0)(_ + _)
     val foldedOption: String = Foldable[Option].foldLeft(Option("Hello there"), "")(_ concat _)
+
+    val sumRight: Eval[Int] = Foldable[List].foldRight(1 :: 2 :: 3 :: Nil, Eval.now(0))((a, ev) => ev.map(_ + a))
+
+    import cats.instances.int._
+    import cats.instances.string._
+
+    val combined2: Int = Foldable[List].combineAll(1 :: 2 :: 3:: Nil)
+    val mappedConcat: String = Foldable[List].foldMap(1 :: 2 :: 3 :: Nil)(_.toString)
 
   }
 
