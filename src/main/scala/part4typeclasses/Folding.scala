@@ -15,6 +15,7 @@ object Folding {
   def main(args: Array[String]): Unit = {
 
     import list_exercises._
+    import cats.instances.int._
 
     val data = 1 :: 2 :: 3 :: Nil
     assert(map(data)(_ * 2) == 2 :: 4 :: 6 :: Nil)
@@ -22,6 +23,8 @@ object Folding {
     assert(flatMap(data)(n => List(n * 2)) == 2 :: 4 :: 6 :: Nil)
 
     assert(filter(data)(_  % 2 == 0) == 2 :: Nil)
+
+    assert(combine(data) == 6)
 
   }
 
