@@ -21,6 +21,8 @@ object ContravariantFunctors {
       override def format(value: Boolean): String = if (value) "Y" else "N"
     }
 
+    // problem: given Format[MyType] can we also have Format[Option[MyType]]?
+
   }
 
   def format[A: Format](value: A): String = Format[A].format(value)
