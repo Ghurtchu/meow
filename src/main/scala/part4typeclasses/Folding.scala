@@ -26,6 +26,20 @@ object Folding {
 
     assert(combine(data) == 6)
 
+    println(foldable.combined)
+    println(foldable.foldedOption)
+
+  }
+
+  import cats.Foldable
+  import cats.instances.list._
+  import cats.instances.option._
+
+  object foldable {
+
+    val combined: Int = Foldable[List].foldLeft(1 :: 2 :: 3 :: Nil, 0)(_ + _)
+    val foldedOption: String = Foldable[Option].foldLeft(Option("Hello there"), "")(_ concat _)
+
   }
 
 }
