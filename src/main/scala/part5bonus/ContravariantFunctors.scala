@@ -7,6 +7,7 @@ object ContravariantFunctors {
   }
 
   object Format {
+
     def apply[A](implicit format: Format[A]): Format[A] = format
 
     implicit object strFormat extends Format[String] {
