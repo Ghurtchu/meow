@@ -27,6 +27,10 @@ object ContravariantFunctors {
       override def format(value: Option[T]): String = Format[T].format(value.get)
     }
 
+    def contramap[A, B](f: A => B)(implicit form: Format[B]): Format[A] = new Format[A] {
+      override def format(value: A): String = form.format(f(value))
+    }
+
   }
 
   def format[A: Format](value: A): String = Format[A].format(value)
