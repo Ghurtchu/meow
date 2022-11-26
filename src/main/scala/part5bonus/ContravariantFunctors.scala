@@ -39,6 +39,16 @@ object ContravariantFunctors {
     println(format(5))
     println(format("Nothing weird so far"))
     println(format(true))
+
+
+    import cats.Contravariant
+    import cats.Show // type class for turning things into toString
+    import cats.instances.int._ // implicit Show[Int]
+
+    val showInt = Show[Int]
+    val showOpt: Show[Option[Int]] = Contravariant[Show].contramap(showInt)(_.get)
+
+
   }
 
 }
