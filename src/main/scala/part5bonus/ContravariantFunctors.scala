@@ -27,7 +27,6 @@ object ContravariantFunctors {
       override def format(value: Option[T]): String = Format[T].format(value.get)
     }
 
-
   }
 
   def format[A: Format](value: A): String = Format[A].format(value)
